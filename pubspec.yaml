@@ -1,3 +1,7 @@
+name: crypto_radar
+description: Crypto Radar Application
+publish_to: 'none'
+
 dependencies:
   flutter:
     sdk: flutter
