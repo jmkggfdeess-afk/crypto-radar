@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint("Firebase init bypass: $e");
-  }
   runApp(const CryptoRadarApp());
 }
 
@@ -28,56 +20,14 @@ class CryptoRadarApp extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F172A),
         primaryColor: const Color(0xFFF59E0B),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFF59E0B),
-          secondary: Color(0xFF10B981),
-          surface: Color(0xFF1E293B),
-        ),
       ),
-      home: const AuthGate(),
-    );
-  }
-}
-
-class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
-
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  bool _guestMode = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (_guestMode) {
-      return RadarHomeScreen(onLogout: () => setState(() => _guestMode = false));
-    }
-
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Color(0xFFF59E0B))),
-          );
-        }
-        if (snapshot.hasData) {
-          return RadarHomeScreen(onLogout: () async {
-            await FirebaseAuth.instance.signOut();
-            await GoogleSignIn().signOut();
-          });
-        }
-        return LoginScreen(onGuestLogin: () => setState(() => _guestMode = true));
-      },
+      home: const LoginScreen(),
     );
   }
 }
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback onGuestLogin;
-  const LoginScreen({super.key, required this.onGuestLogin});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -86,28 +36,19 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
-  Future<void> _signInWithGoogle() async {
+  void _loginAsGuest() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const RadarHomeScreen()),
+    );
+  }
+
+  void _loginWithGoogle() async {
     setState(() => _isLoading = true);
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر الدخول بجوجل، يمكنك تجربة وضع الزائر: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    await Future.delayed(const Duration(seconds: 1)); // محاكاة الاتصال
+    if (mounted) {
+      setState(() => _isLoading = false);
+      _loginAsGuest();
     }
   }
 
@@ -138,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'CRYPTO RADAR V2',
+                  'CRYPTO RADAR PRO',
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                 ),
                 const SizedBox(height: 8),
@@ -160,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     icon: const Icon(Icons.g_mobiledata, size: 30, color: Colors.red),
                     label: const Text('تسجيل الدخول عبر Google', style: TextStyle(fontWeight: FontWeight.bold)),
-                    onPressed: _signInWithGoogle,
+                    onPressed: _loginWithGoogle,
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
@@ -171,8 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     icon: const Icon(Icons.flash_on, color: Color(0xFFF59E0B)),
-                    label: const Text('الدخول السريع (وضع الزائر)'),
-                    onPressed: widget.onGuestLogin,
+                    label: const Text('الدخول السريع (بدون تسجيل)'),
+                    onPressed: _loginAsGuest,
                   ),
                 ]
               ],
@@ -185,8 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class RadarHomeScreen extends StatefulWidget {
-  final VoidCallback onLogout;
-  const RadarHomeScreen({super.key, required this.onLogout});
+  const RadarHomeScreen({super.key});
 
   @override
   State<RadarHomeScreen> createState() => _RadarHomeScreenState();
@@ -226,21 +166,21 @@ class _RadarHomeScreenState extends State<RadarHomeScreen> {
           final priceChange = double.tryParse(coin['priceChangePercent'].toString()) ?? 0.0;
           final volume = double.tryParse(coin['quoteVolume'].toString()) ?? 0.0;
 
-          // محاكاة حساب المعشرات الفنية بناءً على تغيرات السعر والزخم
+          // حساب مؤشر القوة النسبية RSI
           double simulatedRSI = 30 + (priceChange.abs() * 3) + random.nextDouble() * 10;
           simulatedRSI = simulatedRSI.clamp(15.0, 85.0);
 
-          String signalType = 'WAIT';
+          String signalType = 'WAIT (انتظار)';
           double entry = price;
           double sl = 0.0;
           double tp = 0.0;
 
           if (simulatedRSI < 35 && priceChange > -5) {
-            signalType = 'BUY (شراء)';
+            signalType = 'BUY (شراء سكالب)';
             sl = entry * 0.985; // وقف خسارة 1.5%
             tp = entry * 1.03;  // هدف ربح 3%
           } else if (simulatedRSI > 68 && priceChange > 5) {
-            signalType = 'SELL (بيع)';
+            signalType = 'SELL (بيع / شورت)';
             sl = entry * 1.015;
             tp = entry * 0.97;
           }
@@ -293,7 +233,12 @@ class _RadarHomeScreenState extends State<RadarHomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: widget.onLogout,
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
           ),
         ],
       ),
