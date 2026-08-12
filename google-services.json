@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "690264459025",
+    "project_id": "cryptoradar-6a0a1",
+    "storage_bucket": "cryptoradar-6a0a1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:690264459025:android:f00195efb7f7d5ff3d6eb0",
+        "android_client_info": {
+          "package_name": "com.example.crypto_radar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "690264459025-lc0l4040g6aqgu7i9l4g44lba6f96a69.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCoNz9d3wVyQTV4fc8o-RjfdMnIPE5dDNo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "690264459025-lc0l4040g6aqgu7i9l4g44lba6f96a69.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
