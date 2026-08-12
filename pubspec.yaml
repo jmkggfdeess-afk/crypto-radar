@@ -1,5 +1,5 @@
 name: crypto_radar
-description: Crypto Radar Application
+description: Crypto Radar Scalping Application
 publish_to: 'none'
 
 environment:
